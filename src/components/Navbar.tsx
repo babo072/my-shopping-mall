@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ShoppingCart, ListOrdered } from 'lucide-react'; // ListOrdered 아이콘 추가
+import { ShoppingCart, ListOrdered, UserCircle } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { logout } from '@/app/actions/auth';
 import type { User } from '@supabase/supabase-js';
@@ -21,7 +21,6 @@ export default function Navbar({ user }: NavbarProps) {
           나만의 작은 상점
         </Link>
         <div className="flex items-center gap-6">
-          {/* 장바구니 링크 */}
           <Link href="/cart" className="flex items-center text-slate-300 hover:text-white">
             <ShoppingCart className="h-6 w-6" />
             <span className="ml-2 text-sm font-medium">장바구니</span>
@@ -30,24 +29,27 @@ export default function Navbar({ user }: NavbarProps) {
             </span>
           </Link>
           
-          {/* --- 👇 [추가된 부분] 로그인한 사용자에게만 주문 내역 링크 표시 --- */}
           {user && (
             <Link href="/orders" className="flex items-center text-slate-300 hover:text-white">
               <ListOrdered className="h-6 w-6" />
               <span className="ml-2 text-sm font-medium">주문 내역</span>
             </Link>
           )}
-          {/* ----------------------------------------------------------- */}
           
-          {/* 로그인/로그아웃 상태 표시 */}
           {user ? (
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-slate-300">{user.email}</span>
-              <form action={logout}>
-                <button className="text-sm text-slate-300 hover:text-white transition-colors">
-                  로그아웃
-                </button>
-              </form>
+            <div className="flex items-center gap-6">
+              <Link href="/mypage" className="flex items-center text-slate-300 hover:text-white">
+                <UserCircle className="h-6 w-6" />
+                <span className="ml-2 text-sm font-medium">마이페이지</span>
+              </Link>
+              <div className="flex items-center gap-4">
+                <span className="text-sm text-slate-300">{user.email}</span>
+                <form action={logout}>
+                  <button className="text-sm text-slate-300 hover:text-white transition-colors">
+                    로그아웃
+                  </button>
+                </form>
+              </div>
             </div>
           ) : (
             <Link href="/login" className="text-sm font-medium text-slate-300 hover:text-white">
