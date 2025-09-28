@@ -35,8 +35,16 @@ export default function CartPage() {
             {items.map(item => (
               <div key={item.id} className="bg-slate-800 p-4 rounded-lg flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="bg-slate-700 w-20 h-20 rounded-md flex items-center justify-center">
-                    <Camera className="w-8 h-8 text-slate-500"/>
+                  <div className="bg-slate-700 w-20 h-20 rounded-md flex items-center justify-center flex-shrink-0">
+                    {item.product_images && item.product_images.length > 0 ? (
+                      <img 
+                        src={item.product_images[0].image_url} 
+                        alt={item.name} 
+                        className="w-full h-full object-cover rounded-md"
+                      />
+                    ) : (
+                      <Camera className="w-8 h-8 text-slate-500"/>
+                    )}
                   </div>
                   <div>
                     <h2 className="font-bold text-lg">{item.name}</h2>
@@ -44,13 +52,11 @@ export default function CartPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
-                  {/* 수량 조절 버튼 */}
                   <div className="flex items-center border border-slate-700 rounded">
                     <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="px-2 py-1 hover:bg-slate-700"><Minus size={16}/></button>
                     <span className="px-3">{item.quantity}</span>
                     <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="px-2 py-1 hover:bg-slate-700"><Plus size={16}/></button>
                   </div>
-                  {/* 삭제 버튼 */}
                   <button onClick={() => removeItem(item.id)} className="text-slate-500 hover:text-red-500">
                     <Trash2/>
                   </button>
