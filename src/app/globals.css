@@ -2,6 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+.prose-dark p {
+  margin-bottom: 1em;
+}
+
+.prose-dark ul, .prose-dark ol {
+  list-style-position: inside;
+  margin-left: 1.5em;
+  margin-bottom: 1em;
+}
+
+.prose-dark li {
+  margin-bottom: 0.5em;
+}
+
+.prose-dark a {
+  color: #22d3ee; /* cyan-400 */
+  text-decoration: underline;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

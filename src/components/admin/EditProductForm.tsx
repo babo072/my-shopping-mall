@@ -15,17 +15,17 @@ type Product = {
   id: string;
   name: string;
   description: string | null;
+  short_description: string | null;
   price: number;
   product_images: ProductImage[];
 };
 
 export default function EditProductForm({ product }: { product: Product }) {
-  const router = useRouter(); // revalidate를 위해 router를 사용
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
   
-  // 상태 관리를 위해 기존 이미지 목록을 state로 옮깁니다.
   const [images, setImages] = useState(product.product_images);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -38,7 +38,6 @@ export default function EditProductForm({ product }: { product: Product }) {
     let newImageUrls: string[] = [];
 
     try {
-      // 1. 새로 추가된 파일이 있다면 업로드합니다.
       if (newImageFiles.length > 0 && newImageFiles[0].size > 0) {
         const uploadPromises = newImageFiles.map(file => {
           const filePath = `${crypto.randomUUID()}.${file.name.split('.').pop()}`;
@@ -54,7 +53,6 @@ export default function EditProductForm({ product }: { product: Product }) {
         newImageUrls = uploadResults.map(r => supabase.storage.from('product-images').getPublicUrl(r.data!.path).data.publicUrl);
       }
       
-      // 2. 텍스트 정보와 새로 추가된 이미지 URL들을 서버 액션으로 전송합니다.
       await updateProduct(formData, newImageUrls);
 
     } catch (err: any) {
@@ -69,9 +67,8 @@ export default function EditProductForm({ product }: { product: Product }) {
       if (result.error) {
         alert(result.error);
       } else {
-        // 성공 시, 화면에서도 해당 이미지를 즉시 제거합니다.
         setImages(currentImages => currentImages.filter(img => img.id !== imageId));
-        router.refresh(); // 서버 데이터를 다시 불러와서 페이지를 갱신
+        router.refresh();
       }
     }
   };
@@ -84,10 +81,23 @@ export default function EditProductForm({ product }: { product: Product }) {
         <label htmlFor="name" className="block text-sm font-medium text-slate-400">상품명</label>
         <input type="text" name="name" id="name" required defaultValue={product.name} className="mt-1 w-full p-2 bg-slate-700 border border-slate-600 rounded-md"/>
       </div>
+
       <div>
-        <label htmlFor="description" className="block text-sm font-medium text-slate-400">설명</label>
-        <textarea name="description" id="description" rows={4} required defaultValue={product.description || ''} className="mt-1 w-full p-2 bg-slate-700 border border-slate-600 rounded-md"></textarea>
+        <label htmlFor="short_description" className="block text-sm font-medium text-slate-400">짧은 설명 (목록용)</label>
+        <textarea name="short_description" id="short_description" rows={2} required 
+          defaultValue={product.short_description || ''}
+          className="mt-1 w-full p-2 bg-slate-700 border border-slate-600 rounded-md"
+        ></textarea>
       </div>
+
+      <div>
+        <label htmlFor="description" className="block text-sm font-medium text-slate-400">상세 설명 (HTML 가능)</label>
+        <textarea name="description" id="description" rows={5} required 
+          defaultValue={product.description || ''}
+          className="mt-1 w-full p-2 bg-slate-700 border border-slate-600 rounded-md"
+        ></textarea>
+      </div>
+
       <div>
         <label htmlFor="price" className="block text-sm font-medium text-slate-400">가격</label>
         <input type="number" name="price" id="price" required defaultValue={product.price} className="mt-1 w-full p-2 bg-slate-700 border border-slate-600 rounded-md"/>

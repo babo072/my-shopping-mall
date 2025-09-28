@@ -10,34 +10,39 @@ export interface Product {
   created_at: string;
   name: string;
   description: string | null;
+  short_description: string | null;
   price: number;
   product_images: ProductImage[];
 }
 
 export const revalidate = 0;
 
-// 👇 1. searchParams를 받을 수 있도록 props 타입을 정의하고, 컴포넌트를 async로 변경합니다.
 export default async function Home({
   searchParams,
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  // 👇 2. searchParams 값을 await으로 받아옵니다.
   const params = await searchParams;
   const errorMessage = params?.error;
 
   const supabase = await createServerClientAsync();
   const { data: products, error } = await supabase
     .from('products')
-    .select(`*, product_images (image_url)`)
+    .select(`
+      *,
+      product_images (
+        image_url
+      )
+    `)
     .order('created_at', { ascending: false });
 
-  if (error) { /* ... */ }
-  
+  if (error) {
+    return <p className="text-white text-center p-8">상품을 불러오는 중 오류가 발생했습니다.</p>;
+  }
+
   return (
     <div className="bg-slate-900 text-white">
       <div className="container mx-auto px-4 py-12">
-        {/* 👇 3. 에러 메시지가 있으면 화면 상단에 표시합니다. */}
         {errorMessage && (
           <div className="mb-8 p-4 bg-red-500/20 border border-red-500/30 text-red-300 rounded-md text-center">
             <p>{typeof errorMessage === 'string' ? errorMessage : '오류가 발생했습니다.'}</p>
@@ -69,7 +74,7 @@ export default async function Home({
                   <div className="p-5 flex flex-col flex-grow">
                     <h2 className="text-xl font-bold text-slate-100 truncate">{product.name}</h2>
                     <p className="text-sm text-slate-400 mt-2 flex-grow h-10 overflow-hidden">
-                      {product.description}
+                      {product.short_description}
                     </p>
                     <p className="text-2xl font-semibold mt-4 text-right text-cyan-400">
                       {product.price.toLocaleString()}원

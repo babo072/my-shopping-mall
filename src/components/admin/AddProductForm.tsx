@@ -26,7 +26,6 @@ export default function AddProductForm() {
     }
 
     try {
-      // 1. 여러 파일을 병렬로 업로드합니다.
       const uploadPromises = files.map(file => {
         const fileExt = file.name.split('.').pop();
         const filePath = `${crypto.randomUUID()}.${fileExt}`;
@@ -37,19 +36,18 @@ export default function AddProductForm() {
 
       const failedUploads = uploadResults.filter(result => result.error);
       if (failedUploads.length > 0) {
-        throw new Error('일부 이미지 업로드에 실패했습니다: ' + failedUploads.map(f => f.error!.message).join(', '));
+        throw new Error('일부 이미지 업로드에 실패했습니다.');
       }
 
-      // 2. 성공한 모든 파일의 공개 URL을 가져옵니다.
       const imageUrls = uploadResults.map(result => {
         const filePath = result.data!.path;
         return supabase.storage.from('product-images').getPublicUrl(filePath).data.publicUrl;
       });
 
-      // 3. 서버 액션을 호출하여 DB에 상품 정보 저장
       const productData = {
         name: formData.get('name') as string,
         description: formData.get('description') as string,
+        short_description: formData.get('short_description') as string,
         price: Number(formData.get('price')),
         imageUrls,
       };
@@ -78,8 +76,12 @@ export default function AddProductForm() {
           <input type="text" name="name" id="name" required className="mt-1 w-full px-3 py-2 text-white bg-slate-700 border border-slate-600 rounded-md"/>
         </div>
         <div>
-          <label htmlFor="description" className="block text-sm font-medium text-slate-400">설명</label>
-          <textarea name="description" id="description" rows={3} required className="mt-1 w-full px-3 py-2 text-white bg-slate-700 border border-slate-600 rounded-md"></textarea>
+          <label htmlFor="short_description" className="block text-sm font-medium text-slate-400">짧은 설명 (목록용)</label>
+          <textarea name="short_description" id="short_description" rows={2} required className="mt-1 w-full px-3 py-2 text-white bg-slate-700 border border-slate-600 rounded-md"></textarea>
+        </div>
+        <div>
+          <label htmlFor="description" className="block text-sm font-medium text-slate-400">상세 설명 (HTML 가능)</label>
+          <textarea name="description" id="description" rows={5} required className="mt-1 w-full px-3 py-2 text-white bg-slate-700 border border-slate-600 rounded-md"></textarea>
         </div>
         <div>
           <label htmlFor="price" className="block text-sm font-medium text-slate-400">가격</label>
