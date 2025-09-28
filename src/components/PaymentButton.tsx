@@ -1,63 +1,94 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { loadTossPayments } from '@tosspayments/payment-sdk';
 import { useCartStore } from '@/store/cartStore';
 import { createOrder } from '@/app/actions/order';
 
-export default function PaymentButton() {
-  const { items } = useCartStore();
+interface PaymentButtonProps {
+  className?: string;
+}
+
+function generateId() {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID();
+  }
+  return 'order_' + Date.now().toString(36);
+}
+
+export default function PaymentButton({ className }: PaymentButtonProps) {
   const router = useRouter();
-  const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY!;
-  const FAKE = process.env.NEXT_PUBLIC_FAKE_PAY === '1';
+  const [loading, setLoading] = useState(false);
+  const items = useCartStore((s: any) => s.items ?? []);
 
-  const handlePayment = async () => {
-    if (!items.length) return alert('결제할 상품이 없습니다.');
+  const onPay = async () => {
+    if (loading || items.length === 0) return;
+    setLoading(true);
 
-    // 1) 주문 예비 생성
-    const orderRes = await createOrder(items);
-    if (!orderRes?.success || !orderRes.order) {
-      return alert(orderRes?.error ?? '주문 생성 실패');
+    try {
+      // 1. 모드와 관계없이 항상 DB에 주문을 먼저 생성합니다.
+      const orderResponse = await createOrder(items);
+
+      if (!orderResponse.success || !orderResponse.order) {
+        alert(orderResponse.error || '주문을 생성하는 데 실패했습니다.');
+        setLoading(false);
+        return;
+      }
+      
+      const order = orderResponse.order;
+      const isTest = process.env.NEXT_PUBLIC_TEST_MODE === 'true';
+
+      // 2. 테스트 모드일 경우
+      if (isTest) {
+        const query = new URLSearchParams({
+          orderId: order.id,
+          amount: order.total_price.toString(),
+          paymentKey: `fake-payment-key-${generateId()}`,
+          fake: '1', // 서버에 테스트 모드임을 알리는 플래그
+        }).toString();
+        router.push(`/payment/success?${query}`);
+        return; // 여기서 함수 종료
+      }
+
+      // 3. 실제 결제 모드일 경우
+      const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
+      if (!clientKey) {
+        alert('결제 설정이 올바르지 않습니다.');
+        setLoading(false);
+        return;
+      }
+
+      const toss = await loadTossPayments(clientKey);
+      await toss.requestPayment('카드', {
+        amount: order.total_price,
+        orderId: order.id,
+        orderName: items.length > 1 ? `${items[0].name} 외 ${items.length - 1}건` : items[0].name,
+        customerName: '홍길동', // 실제로는 로그인된 사용자 정보 사용
+        successUrl: `${window.location.origin}/payment/success`,
+        failUrl: `${window.location.origin}/payment/fail`,
+      });
+
+    } catch (err) {
+      console.error('결제 진행 중 오류가 발생했습니다:', err);
+      alert('결제 진행 중 오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
     }
-    const order = orderRes.order;
-
-    const origin = window.location.origin;
-    const successUrl = `${origin}/payment/success`;
-    const failUrl = `${origin}/payment/fail`;
-
-    // 2) 테스트 모드: 결제창 생략하고 곧바로 success로 이동
-    if (FAKE) {
-      const fakePaymentKey = `fake_${Date.now()}`;
-      const amount = Math.round(Number(order.total_price));
-      // success 페이지에서 쿼리스트링을 그대로 사용(서버 confirm은 테스트용으로 건너뛰거나 mock 처리)
-      const qs = new URLSearchParams({
-        paymentKey: fakePaymentKey,
-        orderId: String(order.id),
-        amount: String(amount),
-        fake: '1',
-      }).toString();
-      window.location.href = `${successUrl}?${qs}`;
-      return;
-    }
-
-    // 3) 실제 결제
-    const tossPayments = await loadTossPayments(clientKey);
-    await tossPayments.requestPayment('카드', {
-      amount: Math.round(Number(order.total_price)),
-      orderId: String(order.id),
-      orderName: items.length > 1 ? `${items[0].name} 외 ${items.length - 1}건` : items[0].name,
-      customerName: '홍길동',
-      successUrl,
-      failUrl,
-    });
   };
 
   return (
     <button
-      onClick={handlePayment}
-      className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-lg mt-6"
+      type="button"
+      onClick={onPay}
+      disabled={loading || items.length === 0}
+      className={
+        className ??
+        'w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-lg mt-6 disabled:opacity-60'
+      }
+      aria-busy={loading}
     >
-      결제하기
+      {loading ? '처리 중…' : '결제하기'}
     </button>
   );
 }
