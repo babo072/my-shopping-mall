@@ -27,7 +27,7 @@ export default function CartPage() {
   return (
     <div className="bg-slate-900 text-white min-h-screen">
       <div className="container mx-auto px-4 py-12">
-        <h1 className="text-4xl font-extrabold mb-10 text-center">Shopping Cart</h1>
+        <h1 className="text-4xl font-extrabold mb-10 text-center">장바구니</h1>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
           {/* 상품 목록 */}

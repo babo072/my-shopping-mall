@@ -32,13 +32,12 @@ export async function signup(formData: FormData) {
 
   if (error) {
     console.error('Signup Error:', error.message);
+    // 👇 영어 메시지를 한글로 수정
     const message = '회원가입에 실패했습니다. 다시 시도해주세요.';
-    // ✅ URL 인코딩 적용
     return redirect(`/login?message=${encodeURIComponent(message)}`);
   }
 
   const message = '회원가입 성공! 이메일을 확인하여 계정을 활성화해주세요.';
-  // ✅ URL 인코딩 적용
   return redirect(`/login?message=${encodeURIComponent(message)}`);
 }
 
@@ -70,8 +69,8 @@ export async function login(formData: FormData) {
 
   if (error) {
     console.error('Login Error:', error.message);
+    // 👇 영어 메시지를 한글로 수정
     const message = '이메일 또는 비밀번호가 올바르지 않습니다.';
-    // ✅ URL 인코딩 적용
     return redirect(`/login?message=${encodeURIComponent(message)}`);
   }
 

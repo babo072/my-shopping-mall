@@ -7,7 +7,6 @@ export async function GET(request: Request) {
   const code = searchParams.get('code');
   
   if (code) {
-    // ✅ Next.js 15: cookies()는 반드시 await 해야 합니다.
     const cookieStore = await cookies();
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -36,6 +35,7 @@ export async function GET(request: Request) {
     }
   }
 
-  // 인증 실패 시 로그인 페이지로 리디렉션
-  return NextResponse.redirect(`${origin}/login?error=Could not authenticate user`);
+  // 👇 영어 메시지를 한글로 수정
+  const errorMessage = "소셜 로그인 인증에 실패했습니다.";
+  return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(errorMessage)}`);
 }
