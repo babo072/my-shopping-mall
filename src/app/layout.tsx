@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/Navbar"; // Navbar 컴포넌트 import
+import Navbar from "@/components/Navbar";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "My Little Shop",
-  description: "A small shop built with Next.js",
+  title: "나만의 작은 상점",
+  description: "Next.js로 만든 미니 쇼핑몰",
 };
 
 export default function RootLayout({
@@ -16,13 +16,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${inter.className} bg-gray-50 text-gray-800`}>
-        <Navbar /> {/* Navbar를 children 위에 추가 */}
-        <main className="min-h-screen">
-          {children}
-        </main>
-        {/* 여기에 Footer를 추가할 수 있습니다. */}
+    // 주석과 불필요한 공백을 제거하여 Hydration 오류를 방지합니다.
+    <html lang="ko">
+      <body className={`${inter.className} bg-slate-900 text-white`}>
+        <Navbar />
+        <main className="min-h-screen">{children}</main>
       </body>
     </html>
   );

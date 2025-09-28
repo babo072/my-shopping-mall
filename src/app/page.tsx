@@ -23,7 +23,7 @@ export default async function Home() {
   return (
     <div className="bg-slate-900 text-white min-h-screen">
       <div className="container mx-auto px-4 py-12">
-        <h1 className="text-4xl font-extrabold mb-10 text-center text-slate-100">Our Products</h1>
+        <h1 className="text-4xl font-extrabold mb-10 text-center text-slate-100">판매 상품</h1>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
           {products.map((product: Product) => (

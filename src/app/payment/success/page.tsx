@@ -1,46 +1,79 @@
-'use client';
+import { NextResponse } from "next/server";
 
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect } from 'react';
-import { CheckCircle } from 'lucide-react';
-import { useCartStore } from '@/store/cartStore';
+export const runtime = "nodejs"; // Buffer 사용을 위해 Node.js 런타임으로 지정
+export const dynamic = "force-dynamic"; // 캐시 방지
 
-export default function PaymentSuccessPage() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const { clearCart } = useCartStore();
+export async function POST(request: Request) {
+  try {
+    const { paymentKey, orderId, amount } = await request.json();
 
-  useEffect(() => {
-    // ❗️실제 프로덕션에서는 이 페이지에서 서버로 결제 승인 요청을 보내야 합니다.
-    // URL에 담겨온 paymentKey, orderId, amount를 서버로 보내서,
-    // 서버가 토스페이먼츠 API를 통해 최종 결제 승인을 하고 DB에 주문 정보를 저장합니다.
-    // 이 과정이 '결제 위변조 검증'의 핵심입니다.
+    // 1. 필수 파라미터 검증
+    if (!paymentKey || !orderId || amount == null) {
+      return NextResponse.json(
+        { success: false, error: "필수 파라미터가 누락되었습니다." },
+        { status: 400 }
+      );
+    }
 
-    const paymentKey = searchParams.get('paymentKey');
-    const orderId = searchParams.get('orderId');
-    const amount = searchParams.get('amount');
+    // 2. 시크릿 키 환경변수 확인
+    const secretKey = process.env.NEXT_PUBLIC_TOSS_SECRET_KEY;
+    if (!secretKey) {
+      console.error("[Toss Payments] TOSS_SECRET_KEY가 설정되지 않았습니다.");
+      return NextResponse.json(
+        { success: false, error: "서버 설정 오류입니다." },
+        { status: 500 }
+      );
+    }
 
-    console.log('결제 성공! 검증에 필요한 정보:', { paymentKey, orderId, amount });
+    // 3. 결제 금액(amount)이 유효한 숫자인지 확인
+    const amountNumber = Number(amount);
+    if (!Number.isFinite(amountNumber) || amountNumber <= 0) {
+      return NextResponse.json(
+        { success: false, error: "결제 금액이 유효하지 않습니다." },
+        { status: 400 }
+      );
+    }
 
-    // 검증이 성공했다고 가정하고, 장바구니를 비웁니다.
-    clearCart();
+    // 4. Basic 인증 헤더 생성
+    const authHeader =
+      "Basic " + Buffer.from(`${secretKey}:`).toString("base64");
 
-  }, [searchParams, clearCart]);
+    // 5. 토스페이먼츠 결제 승인 API 호출
+    const response = await fetch("https://api.tosspayments.com/v1/payments/confirm", {
+      method: "POST",
+      headers: {
+        Authorization: authHeader,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        paymentKey,
+        orderId,
+        amount: amountNumber,
+      }),
+    });
 
-  return (
-    <div className="bg-slate-900 text-white min-h-screen flex flex-col items-center justify-center text-center">
-      <CheckCircle className="w-16 h-16 text-green-500 mb-4" />
-      <h1 className="text-3xl font-bold mb-2">결제가 성공적으로 완료되었습니다.</h1>
-      <p className="text-slate-400 mb-8">주문해주셔서 감사합니다!</p>
-      <p className="text-lg">주문번호: <span className="font-mono">{searchParams.get('orderId')}</span></p>
-      <p className="text-lg">결제금액: <span className="font-mono">{Number(searchParams.get('amount')).toLocaleString()}원</span></p>
-      
-      <button 
-        onClick={() => router.push('/')}
-        className="mt-10 bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 px-6 rounded-lg"
-      >
-        쇼핑 계속하기
-      </button>
-    </div>
-  );
+    const data = await response.json();
+
+    // 6. 토스페이먼츠 응답 처리
+    if (!response.ok) {
+      console.error("[Toss Payments Confirm Error]", data);
+      return NextResponse.json(
+        { success: false, error: data },
+        { status: response.status }
+      );
+    }
+
+    // 7. TODO: 결제 성공 시 데이터베이스에 주문 정보 저장 로직 구현
+    console.log("✅ 결제 승인 성공:", data);
+    // 예: await saveOrderToDatabase({ orderId, amount: amountNumber, paymentDetails: data });
+    
+    return NextResponse.json({ success: true, data });
+
+  } catch (error: any) {
+    console.error("[Toss Payments Confirm Exception]", error);
+    return NextResponse.json(
+      { success: false, error: error.message || "알 수 없는 오류가 발생했습니다." },
+      { status: 500 }
+    );
+  }
 }
