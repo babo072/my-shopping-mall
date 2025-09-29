@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { loadTossPayments } from '@tosspayments/payment-sdk';
-import { useCartStore } from '@/store/cartStore';
+import { useCartStore, type CartState } from '@/store/cartStore';
 import { createOrder } from '@/app/actions/order';
 
 interface PaymentButtonProps {
@@ -20,7 +20,7 @@ function generateId() {
 export default function PaymentButton({ className }: PaymentButtonProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const items = useCartStore((s: any) => s.items ?? []);
+  const items = useCartStore((state: CartState) => state.items);
 
   const onPay = async () => {
     if (loading || items.length === 0) return;

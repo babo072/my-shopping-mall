@@ -2,18 +2,35 @@
 
 import { useState, useEffect } from 'react';
 import { updateProfile } from '@/app/actions/profile';
-import type { Tables } from '@/types/supabase';
+
+type DaumPostcodeResult = {
+  zonecode: string;
+  address: string;
+};
+
+type DaumPostcodeConstructor = new (config: {
+  oncomplete: (data: DaumPostcodeResult) => void;
+}) => { open: () => void };
 
 // window 객체에 daum 객체가 있을 수 있음을 TypeScript에 알려줍니다.
 declare global {
   interface Window {
-    daum: any;
+    daum?: {
+      Postcode: DaumPostcodeConstructor;
+    };
   }
 }
 
-type Profile = Tables<'profiles'>;
+export type EditableProfile = {
+  email: string | null;
+  user_name: string | null;
+  phone_number: string | null;
+  postcode: string | null;
+  address: string | null;
+  detail_address: string | null;
+};
 
-export default function EditProfileForm({ profile }: { profile: Profile | null }) {
+export default function EditProfileForm({ profile }: { profile: EditableProfile }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [isDaumLoaded, setIsDaumLoaded] = useState(false);
@@ -70,7 +87,7 @@ export default function EditProfileForm({ profile }: { profile: Profile | null }
 
     try {
       new window.daum.Postcode({
-        oncomplete: function (data: any) {
+        oncomplete(data: DaumPostcodeResult) {
           // 팝업에서 검색결과 항목을 클릭했을때 실행할 코드를 작성하는 부분.
           const postcodeInput = document.getElementById('postcode') as HTMLInputElement;
           const addressInput = document.getElementById('address') as HTMLInputElement;
@@ -105,46 +122,46 @@ export default function EditProfileForm({ profile }: { profile: Profile | null }
   };
   
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6 text-foreground">
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-slate-400">이메일</label>
-        <input type="email" id="email" value={profile?.email || ''} readOnly disabled className="mt-1 w-full p-2 bg-slate-700 border border-slate-600 rounded-md cursor-not-allowed"/>
+        <label htmlFor="email" className="block text-sm font-medium text-slate-200">이메일</label>
+        <input type="email" id="email" value={profile.email ?? ''} readOnly disabled className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800/80 p-2 text-slate-200 placeholder:text-slate-500"/>
       </div>
       <div>
-        <label htmlFor="userName" className="block text-sm font-medium text-slate-400">받는 분 성함</label>
-        <input type="text" name="userName" id="userName" defaultValue={profile?.user_name || ''} required className="mt-1 w-full p-2 bg-slate-700 border border-slate-600 rounded-md"/>
+        <label htmlFor="userName" className="block text-sm font-medium text-slate-200">받는 분 성함</label>
+        <input type="text" name="userName" id="userName" defaultValue={profile.user_name ?? ''} required className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800/80 p-2 text-slate-100 placeholder:text-slate-500 focus:border-primary focus:ring-2 focus:ring-primary/40"/>
       </div>
       <div>
-        <label htmlFor="phoneNumber" className="block text-sm font-medium text-slate-400">연락처</label>
-        <input type="tel" name="phoneNumber" id="phoneNumber" defaultValue={profile?.phone_number || ''} required className="mt-1 w-full p-2 bg-slate-700 border border-slate-600 rounded-md"/>
+        <label htmlFor="phoneNumber" className="block text-sm font-medium text-slate-200">연락처</label>
+        <input type="tel" name="phoneNumber" id="phoneNumber" defaultValue={profile.phone_number ?? ''} required className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800/80 p-2 text-slate-100 placeholder:text-slate-500 focus:border-primary focus:ring-2 focus:ring-primary/40"/>
       </div>
       <div className="space-y-2">
-        <label className="block text-sm font-medium text-slate-400">주소</label>
+        <label className="block text-sm font-medium text-slate-200">배송주소</label>
         <div className="flex gap-2">
-          <input type="text" name="postcode" id="postcode" placeholder="우편번호" readOnly defaultValue={profile?.postcode || ''} className="w-1/3 p-2 bg-slate-700 border border-slate-600 rounded-md"/>
+          <input type="text" name="postcode" id="postcode" placeholder="우편번호" readOnly defaultValue={profile.postcode ?? ''} className="w-1/3 rounded-md border border-slate-700 bg-slate-800/80 p-2 text-slate-100 placeholder:text-slate-500"/>
           <button 
             type="button" 
             onClick={handleAddressSearch}
             disabled={!isDaumLoaded}
             className={`px-4 py-2 rounded-md text-sm transition-colors ${
               isDaumLoaded 
-                ? 'bg-slate-600 hover:bg-slate-500' 
-                : 'bg-slate-700 cursor-not-allowed opacity-50'
+                ? 'bg-primary text-primary-foreground hover:bg-sky-400' 
+                : 'bg-slate-700 text-slate-400 cursor-not-allowed opacity-60'
             }`}
           >
             {isDaumLoaded ? '주소 검색' : '로딩 중...'}
           </button>
         </div>
-        <input type="text" name="address" id="address" placeholder="기본 주소" readOnly defaultValue={profile?.address || ''} className="w-full p-2 bg-slate-700 border border-slate-600 rounded-md"/>
-        <input type="text" name="detailAddress" id="detailAddress" placeholder="상세 주소" defaultValue={profile?.detail_address || ''} required className="w-full p-2 bg-slate-700 border border-slate-600 rounded-md"/>
+        <input type="text" name="address" id="address" placeholder="기본 배송지" readOnly defaultValue={profile.address ?? ''} className="w-full rounded-md border border-slate-700 bg-slate-800/80 p-2 text-slate-100 placeholder:text-slate-500"/>
+        <input type="text" name="detailAddress" id="detailAddress" placeholder="상세 배송지" defaultValue={profile.detail_address ?? ''} required className="w-full rounded-md border border-slate-700 bg-slate-800/80 p-2 text-slate-100 placeholder:text-slate-500 focus:border-primary focus:ring-2 focus:ring-primary/40"/>
       </div>
       
-      <button type="submit" disabled={isSubmitting} className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-4 rounded-md disabled:opacity-50 transition-colors">
+      <button type="submit" disabled={isSubmitting} className="w-full rounded-md bg-primary py-3 px-4 font-bold text-primary-foreground transition-colors hover:bg-sky-400 disabled:opacity-50">
         {isSubmitting ? '저장 중...' : '변경사항 저장'}
       </button>
 
       {message && (
-        <p className={`mt-4 text-center text-sm ${message.type === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+        <p className={`mt-4 text-center text-sm ${message.type === 'success' ? 'text-emerald-300' : 'text-rose-300'}`}>
           {message.text}
         </p>
       )}

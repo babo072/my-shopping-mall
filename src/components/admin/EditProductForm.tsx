@@ -55,8 +55,9 @@ export default function EditProductForm({ product }: { product: Product }) {
       
       await updateProduct(formData, newImageUrls);
 
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '상품 수정 중 오류가 발생했습니다.';
+      setError(message);
       setIsSubmitting(false);
     }
   };

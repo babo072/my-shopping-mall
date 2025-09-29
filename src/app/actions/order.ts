@@ -2,7 +2,10 @@
 
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import type { CartItem } from '@/store/cartStore';
+import { isOrderStatusValue } from '@/lib/order-status';
 
 export async function createOrder(items: CartItem[]) {
   const cookieStore = await cookies();
@@ -71,4 +74,72 @@ export async function createOrder(items: CartItem[]) {
   }
 
   return { success: true as const, order: orderData };
+}
+
+export async function updateOrderStatus(formData: FormData) {
+  const orderId = formData.get('orderId');
+  const status = formData.get('status');
+
+  if (typeof orderId !== 'string' || orderId.length === 0) {
+    return { error: '주문 ID가 올바르지 않습니다.' } as const;
+  }
+
+  if (typeof status !== 'string' || !isOrderStatusValue(status)) {
+    return { error: '선택한 주문 상태가 올바르지 않습니다.' } as const;
+  }
+
+  const cookieStore = await cookies();
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value ?? null;
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          try {
+            cookieStore.set({ name, value, ...options });
+          } catch {}
+        },
+        remove(name: string, options: CookieOptions) {
+          try {
+            cookieStore.set({ name, value: '', ...options, maxAge: 0 });
+          } catch {}
+        },
+      },
+    }
+  );
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: '로그인이 필요합니다.' } as const;
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (profile?.role !== 'admin') {
+    return { error: '관리자만 주문 상태를 변경할 수 있습니다.' } as const;
+  }
+
+  const { error } = await supabase
+    .from('orders')
+    .update({ status })
+    .eq('id', orderId);
+
+  if (error) {
+    console.error('주문 상태 업데이트 오류:', error);
+    return { error: '주문 상태를 변경하는 데 실패했습니다.' } as const;
+  }
+
+  revalidatePath('/orders');
+  redirect('/orders');
 }

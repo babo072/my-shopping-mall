@@ -16,7 +16,7 @@ export default async function LoginPage({
         
         <form className="space-y-4">
           <p className="text-xs text-center text-slate-400 bg-slate-700 p-3 rounded-md">
-            처음이신가요? 이메일과 비밀번호를 입력하고 '회원가입'을 누르면 인증 메일이 발송됩니다.
+            처음이신가요? 이메일과 비밀번호를 입력하고 회원가입 버튼을 누르면 인증 메일이 발송됩니다.
           </p>
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-slate-400">

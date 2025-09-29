@@ -1,8 +1,16 @@
 'use server';
 
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
+
+type ProfileFormData = {
+  user_name: string | null;
+  phone_number: string | null;
+  postcode: string | null;
+  address: string | null;
+  detail_address: string | null;
+};
 
 export async function updateProfile(formData: FormData) {
   const cookieStore = await cookies();
@@ -13,10 +21,10 @@ export async function updateProfile(formData: FormData) {
       cookies: {
         get: (name) => cookieStore.get(name)?.value,
         set: (name, value, options) => {
-          try { cookieStore.set({ name, value, ...options }); } catch (error) {}
+          try { cookieStore.set({ name, value, ...options }); } catch {}
         },
         remove: (name, options) => {
-          try { cookieStore.set({ name, value: '', ...options }); } catch (error) {}
+          try { cookieStore.set({ name, value: '', ...options }); } catch {}
         },
       },
     }
@@ -27,26 +35,37 @@ export async function updateProfile(formData: FormData) {
     return { error: '로그인이 필요합니다.' };
   }
 
-  // --- [디버그 코드] ---
-  console.log("프로필 업데이트 시도하는 사용자 ID:", user.id);
-  // --------------------
-
-  const profileData = {
-    user_name: formData.get('userName') as string,
-    phone_number: formData.get('phoneNumber') as string,
-    postcode: formData.get('postcode') as string,
-    address: formData.get('address') as string,
-    detail_address: formData.get('detailAddress') as string,
+  const toNullableString = (value: FormDataEntryValue | null): string | null => {
+    if (typeof value !== 'string') return null;
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
   };
-  
+
+  const profileData: ProfileFormData = {
+    user_name: toNullableString(formData.get('userName')),
+    phone_number: toNullableString(formData.get('phoneNumber')),
+    postcode: toNullableString(formData.get('postcode')),
+    address: toNullableString(formData.get('address')),
+    detail_address: toNullableString(formData.get('detailAddress')),
+  };
+
   const { error } = await supabase
     .from('profiles')
-    .update(profileData)
-    .eq('id', user.id);
+    .upsert(
+      {
+        id: user.id,
+        email: user.email ?? null,
+        ...profileData,
+      },
+      { onConflict: 'id' }
+    );
 
   if (error) {
     console.error('프로필 업데이트 오류:', error);
-    return { error: '프로필을 업데이트하는 데 실패했습니다.' };
+    return {
+      error:
+        error.message ?? '프로필을 업데이트하는 데 실패했습니다.',
+    };
   }
 
   revalidatePath('/mypage'); // 마이페이지 데이터 갱신

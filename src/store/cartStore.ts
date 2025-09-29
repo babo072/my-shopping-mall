@@ -18,7 +18,7 @@ export interface CartItem extends Product {
 }
 
 // 스토어의 상태와 액션들의 타입을 정의합니다.
-interface CartState {
+export interface CartState {
   items: CartItem[];
   addItem: (product: Product) => void;
   removeItem: (productId: string) => void;

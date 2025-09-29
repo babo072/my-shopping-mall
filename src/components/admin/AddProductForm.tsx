@@ -60,8 +60,9 @@ export default function AddProductForm() {
         setSuccessMessage('상품이 성공적으로 추가되었습니다.');
         (event.target as HTMLFormElement).reset();
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '상품 추가 중 오류가 발생했습니다.';
+      setError(message);
     } finally {
       setIsSubmitting(false);
     }

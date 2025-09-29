@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
 export const runtime = "nodejs";
@@ -18,10 +18,10 @@ export async function POST(request: Request) {
         cookies: {
           get: (name) => cookieStore.get(name)?.value,
           set: (name, value, options) => {
-            try { cookieStore.set({ name, value, ...options }); } catch (error) {}
+            try { cookieStore.set({ name, value, ...options }); } catch {}
           },
           remove: (name, options) => {
-            try { cookieStore.set({ name, value: '', ...options }); } catch (error) {}
+            try { cookieStore.set({ name, value: '', ...options }); } catch {}
           },
         },
       }
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: '주문 금액이 일치하지 않습니다.' }, { status: 400 });
     }
 
-    let paymentConfirmData;
+    let paymentConfirmData: unknown;
 
     // 3. 모드에 따라 분기
     if (fake === '1') {
@@ -100,10 +100,11 @@ export async function POST(request: Request) {
     console.log("✅ 결제 승인 및 주문 확정 완료:", paymentConfirmData);
     return NextResponse.json({ success: true, data: paymentConfirmData });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error("[Toss Payments Confirm Exception]", error);
+    const message = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
     return NextResponse.json(
-      { success: false, error: error.message || "알 수 없는 오류가 발생했습니다." },
+      { success: false, error: message },
       { status: 500 }
     );
   }

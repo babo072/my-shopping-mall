@@ -138,19 +138,34 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address: string | null
+          detail_address: string | null
           email: string | null
           id: string
+          phone_number: string | null
+          postcode: string | null
           role: string | null
+          user_name: string | null
         }
         Insert: {
+          address?: string | null
+          detail_address?: string | null
           email?: string | null
           id: string
+          phone_number?: string | null
+          postcode?: string | null
           role?: string | null
+          user_name?: string | null
         }
         Update: {
+          address?: string | null
+          detail_address?: string | null
           email?: string | null
           id?: string
+          phone_number?: string | null
+          postcode?: string | null
           role?: string | null
+          user_name?: string | null
         }
         Relationships: []
       }
@@ -162,7 +177,13 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      order_status: "pending" | "paid" | "shipped" | "delivered" | "cancelled"
+      order_status:
+        | "pending"
+        | "paid"
+        | "shipped"
+        | "delivered"
+        | "cancelled"
+        | "cancellation_requested"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -290,7 +311,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      order_status: ["pending", "paid", "shipped", "delivered", "cancelled"],
+      order_status: [
+        "pending",
+        "paid",
+        "shipped",
+        "delivered",
+        "cancelled",
+        "cancellation_requested",
+      ],
     },
   },
 } as const
