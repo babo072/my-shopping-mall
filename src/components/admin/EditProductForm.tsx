@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { updateProduct, deleteProductImage } from '@/app/admin/actions';
 import { createClient } from '@/utils/supabase/client';
 import { XCircle } from 'lucide-react';
@@ -109,8 +110,14 @@ export default function EditProductForm({ product }: { product: Product }) {
         {images.length > 0 ? (
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">
             {images.map((image) => (
-              <div key={image.id} className="relative group aspect-square">
-                <img src={image.image_url} alt="상품 이미지" className="w-full h-full object-cover rounded-md" />
+              <div key={image.id} className="relative group aspect-square overflow-hidden rounded-md">
+                <Image
+                  src={image.image_url}
+                  alt="상품 이미지"
+                  fill
+                  sizes="160px"
+                  className="object-cover"
+                />
                 <button
                   type="button"
                   onClick={() => handleDeleteImage(image.id, image.image_url)}

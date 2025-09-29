@@ -16,10 +16,14 @@ export async function signup(formData: FormData) {
       cookies: {
         get(name: string) { return cookieStore.get(name)?.value; },
         set(name: string, value: string, options: CookieOptions) {
-          try { cookieStore.set({ name, value, ...options }); } catch (error) {}
+          try { cookieStore.set({ name, value, ...options }); } catch {
+            // ignore write failures in restricted contexts
+          }
         },
         remove(name: string, options: CookieOptions) {
-          try { cookieStore.set({ name, value: '', ...options }); } catch (error) {}
+          try { cookieStore.set({ name, value: '', ...options }); } catch {
+            // ignore write failures in restricted contexts
+          }
         },
       },
     }
@@ -53,10 +57,14 @@ export async function login(formData: FormData) {
       cookies: {
         get(name: string) { return cookieStore.get(name)?.value; },
         set(name: string, value: string, options: CookieOptions) {
-          try { cookieStore.set({ name, value, ...options }); } catch (error) {}
+          try { cookieStore.set({ name, value, ...options }); } catch {
+            // ignore write failures in restricted contexts
+          }
         },
         remove(name: string, options: CookieOptions) {
-          try { cookieStore.set({ name, value: '', ...options }); } catch (error) {}
+          try { cookieStore.set({ name, value: '', ...options }); } catch {
+            // ignore write failures in restricted contexts
+          }
         },
       },
     }

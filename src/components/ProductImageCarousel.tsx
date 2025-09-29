@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
+import Image from 'next/image';
 import useEmblaCarousel, { EmblaCarouselType } from 'embla-carousel-react';
 import { Camera, ChevronLeft, ChevronRight } from 'lucide-react';
 import '../app/carousel.css'; // 1. 방금 만든 CSS 파일을 import 합니다.
@@ -48,11 +49,15 @@ export default function ProductImageCarousel({ images, productName }: PropType) 
         <div className="embla__container">
           {images.map((img, index) => (
             <div className="embla__slide" key={index}>
-              <img
-                className="w-full aspect-square object-cover"
-                src={img.image_url}
-                alt={`${productName} 이미지 ${index + 1}`}
-              />
+              <div className="relative w-full aspect-square">
+                <Image
+                  src={img.image_url}
+                  alt={`${productName} 이미지 ${index + 1}`}
+                  fill
+                  sizes="(min-width: 768px) 50vw, 100vw"
+                  className="object-cover"
+                />
+              </div>
             </div>
           ))}
         </div>

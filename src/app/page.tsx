@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { createServerClientAsync } from "@/utils/supabase/server";
 import { Camera } from 'lucide-react';
 
@@ -60,12 +61,14 @@ export default async function Home({
             {(products as Product[]).map((product) => (
               <Link href={`/product/${product.id}`} key={product.id} className="group">
                 <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden h-full flex flex-col transition-all duration-300 ease-in-out group-hover:shadow-lg group-hover:shadow-cyan-500/10 group-hover:-translate-y-2">
-                  <div className="bg-slate-700 aspect-square flex items-center justify-center overflow-hidden">
+                  <div className="relative bg-slate-700 aspect-square flex items-center justify-center overflow-hidden">
                     {product.product_images && product.product_images.length > 0 ? (
-                      <img 
-                        src={product.product_images[0].image_url} 
-                        alt={product.name} 
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      <Image
+                        src={product.product_images[0].image_url}
+                        alt={product.name}
+                        fill
+                        sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 30vw, (min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
+                        className="object-cover transition-transform duration-300 group-hover:scale-105"
                       />
                     ) : (
                       <Camera className="w-16 h-16 text-slate-500" />

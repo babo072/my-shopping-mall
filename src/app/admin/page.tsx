@@ -1,6 +1,7 @@
 import { createServerClientAsync } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Camera } from "lucide-react";
 import AddProductForm from "@/components/admin/AddProductForm";
 import DeleteButton from "@/components/admin/DeleteButton";
@@ -66,9 +67,15 @@ export default async function AdminPage() {
             {products && (products as Product[]).map(product => (
               <div key={product.id} className="bg-slate-700 p-4 rounded-md flex justify-between items-center">
                 <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-slate-600 rounded-md flex-shrink-0">
+                  <div className="relative w-16 h-16 bg-slate-600 rounded-md overflow-hidden flex-shrink-0">
                     {product.product_images && product.product_images.length > 0 ? (
-                      <img src={product.product_images[0].image_url} alt={product.name} className="w-full h-full object-cover rounded-md"/>
+                      <Image
+                        src={product.product_images[0].image_url}
+                        alt={product.name}
+                        fill
+                        sizes="64px"
+                        className="object-cover"
+                      />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <Camera className="w-8 h-8 text-slate-500" />

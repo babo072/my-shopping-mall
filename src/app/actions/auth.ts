@@ -13,10 +13,14 @@ export async function logout() {
       cookies: {
         get: (name) => cookieStore.get(name)?.value,
         set: (name, value, options) => {
-          try { cookieStore.set({ name, value, ...options }); } catch (error) {}
+          try { cookieStore.set({ name, value, ...options }); } catch {
+            // ignore cookie write failures in restricted contexts
+          }
         },
         remove: (name, options) => {
-          try { cookieStore.set({ name, value: '', ...options }); } catch (error) {}
+          try { cookieStore.set({ name, value: '', ...options }); } catch {
+            // ignore cookie write failures in restricted contexts
+          }
         },
       },
     }

@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import { createServerClientAsync } from "@/utils/supabase/server"; // 서버용 클라이언트 import
 import Script from 'next/script'; 
-
-const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "나만의 작은 상점",

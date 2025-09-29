@@ -2,6 +2,7 @@
 
 import { useCartStore } from "@/store/cartStore";
 import Link from "next/link";
+import Image from "next/image";
 import { Camera, Trash2, Plus, Minus } from "lucide-react";
 import PaymentButton from "@/components/PaymentButton";
 
@@ -35,12 +36,14 @@ export default function CartPage() {
             {items.map(item => (
               <div key={item.id} className="bg-slate-800 p-4 rounded-lg flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="bg-slate-700 w-20 h-20 rounded-md flex items-center justify-center flex-shrink-0">
+                  <div className="relative bg-slate-700 w-20 h-20 rounded-md flex items-center justify-center overflow-hidden flex-shrink-0">
                     {item.product_images && item.product_images.length > 0 ? (
-                      <img 
-                        src={item.product_images[0].image_url} 
-                        alt={item.name} 
-                        className="w-full h-full object-cover rounded-md"
+                      <Image
+                        src={item.product_images[0].image_url}
+                        alt={item.name}
+                        fill
+                        sizes="80px"
+                        className="object-cover"
                       />
                     ) : (
                       <Camera className="w-8 h-8 text-slate-500"/>

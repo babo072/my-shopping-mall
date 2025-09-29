@@ -1,6 +1,6 @@
 'use server';
 
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -27,10 +27,14 @@ export async function addProduct(productData: {
       cookies: {
         get: (name) => cookieStore.get(name)?.value,
         set: (name, value, options) => {
-          try { cookieStore.set({ name, value, ...options }); } catch (error) {}
+          try { cookieStore.set({ name, value, ...options }); } catch {
+            // ignore write failures in restricted contexts
+          }
         },
         remove: (name, options) => {
-          try { cookieStore.set({ name, value: '', ...options }); } catch (error) {}
+          try { cookieStore.set({ name, value: '', ...options }); } catch {
+            // ignore write failures in restricted contexts
+          }
         },
       },
     }
@@ -71,10 +75,14 @@ export async function deleteProduct(productId: string) {
       cookies: {
         get: (name) => cookieStore.get(name)?.value,
         set: (name, value, options) => {
-          try { cookieStore.set({ name, value, ...options }); } catch (error) {}
+          try { cookieStore.set({ name, value, ...options }); } catch {
+            // ignore write failures in restricted contexts
+          }
         },
         remove: (name, options) => {
-          try { cookieStore.set({ name, value: '', ...options }); } catch (error) {}
+          try { cookieStore.set({ name, value: '', ...options }); } catch {
+            // ignore write failures in restricted contexts
+          }
         },
       },
     }
@@ -111,10 +119,14 @@ export async function updateProduct(formData: FormData, newImageUrls: string[]) 
       cookies: {
         get: (name) => cookieStore.get(name)?.value,
         set: (name, value, options) => {
-          try { cookieStore.set({ name, value, ...options }); } catch (error) {}
+          try { cookieStore.set({ name, value, ...options }); } catch {
+            // ignore write failures in restricted contexts
+          }
         },
         remove: (name, options) => {
-          try { cookieStore.set({ name, value: '', ...options }); } catch (error) {}
+          try { cookieStore.set({ name, value: '', ...options }); } catch {
+            // ignore write failures in restricted contexts
+          }
         },
       },
     }
@@ -154,10 +166,14 @@ export async function deleteProductImage(imageId: string, imageUrl: string) {
       cookies: {
         get: (name) => cookieStore.get(name)?.value,
         set: (name, value, options) => {
-          try { cookieStore.set({ name, value, ...options }); } catch (error) {}
+          try { cookieStore.set({ name, value, ...options }); } catch {
+            // ignore write failures in restricted contexts
+          }
         },
         remove: (name, options) => {
-          try { cookieStore.set({ name, value: '', ...options }); } catch (error) {}
+          try { cookieStore.set({ name, value: '', ...options }); } catch {
+            // ignore write failures in restricted contexts
+          }
         },
       },
     }
