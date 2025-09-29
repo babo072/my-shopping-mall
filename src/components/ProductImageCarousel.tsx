@@ -15,15 +15,17 @@ export default function ProductImageCarousel({ images, productName }: PropType) 
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
   const [prevBtnDisabled, setPrevBtnDisabled] = useState(true);
   const [nextBtnDisabled, setNextBtnDisabled] = useState(true);
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
   // 2. '이전'/'다음' 버튼을 클릭하는 함수들
   const scrollPrev = useCallback(() => emblaApi && emblaApi.scrollPrev(), [emblaApi]);
   const scrollNext = useCallback(() => emblaApi && emblaApi.scrollNext(), [emblaApi]);
 
   // 3. 캐러셀 상태가 바뀔 때마다 버튼의 활성화/비활성화 상태를 업데이트
-  const onSelect = useCallback((emblaApi: EmblaCarouselType) => {
-    setPrevBtnDisabled(!emblaApi.canScrollPrev());
-    setNextBtnDisabled(!emblaApi.canScrollNext());
+  const onSelect = useCallback((api: EmblaCarouselType) => {
+    setPrevBtnDisabled(!api.canScrollPrev());
+    setNextBtnDisabled(!api.canScrollNext());
+    setSelectedIndex(api.selectedScrollSnap());
   }, []);
 
   useEffect(() => {
@@ -32,6 +34,11 @@ export default function ProductImageCarousel({ images, productName }: PropType) 
     emblaApi.on('reInit', onSelect);
     emblaApi.on('select', onSelect);
   }, [emblaApi, onSelect]);
+
+  const handleSelectThumb = (index: number) => () => {
+    if (!emblaApi) return;
+    emblaApi.scrollTo(index);
+  };
 
   // 이미지가 없을 때의 UI
   if (!images || images.length === 0) {
@@ -44,7 +51,7 @@ export default function ProductImageCarousel({ images, productName }: PropType) 
 
   // 캐러셀 UI
   return (
-    <div className="relative">
+    <div className="relative space-y-3">
       <div className="embla" ref={emblaRef}>
         <div className="embla__container">
           {images.map((img, index) => (
@@ -80,6 +87,36 @@ export default function ProductImageCarousel({ images, productName }: PropType) 
       >
         <ChevronRight size={24} />
       </button>
+
+      {images.length > 1 && (
+        <div className="mt-2 flex justify-center gap-3">
+          {images.slice(0, 5).map((image, index) => {
+            const isActive = selectedIndex === index;
+            return (
+              <button
+                key={image.image_url + index}
+                type="button"
+                onClick={handleSelectThumb(index)}
+                className={`relative h-16 w-16 overflow-hidden rounded-md border transition-colors ${
+                  isActive
+                    ? 'border-primary ring-2 ring-primary/60'
+                    : 'border-slate-600 hover:border-primary/60'
+                }`}
+                aria-label={`${productName} 이미지 ${index + 1} 보기`}
+                aria-current={isActive}
+              >
+                <Image
+                  src={image.image_url}
+                  alt={`${productName} 미리보기 ${index + 1}`}
+                  fill
+                  sizes="64px"
+                  className="object-cover"
+                />
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

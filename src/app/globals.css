@@ -21,6 +21,22 @@
   text-decoration: underline;
 }
 
+.prose-dark img {
+  border-radius: 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  margin: 1.5rem auto;
+  max-height: 24rem;
+  width: 100%;
+  object-fit: cover;
+}
+
+.prose-dark blockquote {
+  border-left: 4px solid rgba(56, 189, 248, 0.4);
+  padding-left: 1rem;
+  color: rgba(226, 232, 240, 0.8);
+  font-style: italic;
+}
+
 @layer base {
   :root {
     --background: 222 47% 11%;
