@@ -22,12 +22,13 @@ Strict TypeScript mode. Default to Server Components, adding `'use client'` only
 Automated suites are pending. Add unit or component tests alongside features (`*.test.tsx`) and group Playwright specs under `e2e/` when introduced. Focus on checkout, authentication, and payment verification, mocking Supabase and payment SDK clients for deterministic runs. Note manual test steps in pull requests until coverage expands.
 
 ## Order & Admin Workflow
-- `/orders`: Admin buttons filter by query (`?status=pending`). Cards show purchaser + shipping data from `profiles`; RLS must allow admin reads before testing.
-- `src/app/actions/order.ts`: `updateOrderStatus` revalidates then redirects; keep it server-side unless caching is redesigned.
-- Maintain canonical statuses in `lib/order-status.ts` and mirror them in Supabase enums.
+- `/orders`: Admin 버튼은 `status` 필터를 제어하고, 검색(`q`)·정렬(`sort`) 폼과 일괄 상태 변경 폼이 함께 동작합니다. 카드마다 체크박스가 `updateOrderStatusBatch`에 연결되며, 링크로 상세 페이지(`/orders/[id]`)로 이동합니다.
+- 카드/상세 페이지는 주문자 + 배송 주소를 `profiles`에서 읽어오고, `orders.admin_note`를 표시합니다. RLS가 관리자에게 `orders`, `order_items`, `products`, `profiles` READ 권한을 부여했는지 확인하세요.
+- `src/app/actions/order.ts`: `updateOrderStatus`, `updateOrderStatusBatch`, `updateOrderMemo`는 모두 `redirectTo` 값을 존중합니다. 서버 액션 기반 설계를 유지한 채 캐싱 정책을 조정하세요.
+- 상태 상수는 `lib/order-status.ts`가 단일 출처입니다. Supabase enum과 동기화하세요.
 
 ## Commit & Pull Request Guidelines
 Keep commits small with concise subjects (Korean or English, no prefixes). Pull requests should include a summary, UI screenshots or GIFs when relevant, reproduction/testing steps, and links to related Supabase schema changes or issues (especially RLS adjustments). Ensure `npm run lint` passes and list required environment variables before requesting review.
 
 ## Environment & Security Notes
-Store secrets in `.env.local` or managed vaults. Do not commit keys. Recreate RLS so admins have `SELECT/UPDATE` on `orders` and `profiles` via `public.is_admin()`. Document any new external service integration.
+Store secrets in `.env.local` or managed vaults. Do not commit keys. Recreate RLS so admins have `SELECT/UPDATE` on `orders`, `order_items`, and `profiles` via `public.is_admin()`. Document any new external service integration.

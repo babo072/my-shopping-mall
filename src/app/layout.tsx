@@ -18,6 +18,16 @@ export default async function RootLayout({
 }>) {
   const supabase = await createServerClientAsync();
   const { data: { user } } = await supabase.auth.getUser();
+  let isAdmin = false;
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+    isAdmin = profile?.role === 'admin';
+  }
 
   return (
     <html lang="ko">
@@ -27,7 +37,7 @@ export default async function RootLayout({
           src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"
           strategy="beforeInteractive"
         />
-        <Navbar user={user} />
+        <Navbar user={user} isAdmin={isAdmin} />
         <main className="min-h-screen">
           {children}
         </main>

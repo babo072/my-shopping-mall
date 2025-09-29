@@ -1,16 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { ShoppingCart, ListOrdered, UserCircle } from 'lucide-react';
+import { ShoppingCart, ListOrdered, UserCircle, Plus } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { logout } from '@/app/actions/auth';
 import type { User } from '@supabase/supabase-js';
 
 type NavbarProps = {
   user: User | null;
+  isAdmin?: boolean;
 }
 
-export default function Navbar({ user }: NavbarProps) {
+export default function Navbar({ user, isAdmin = false }: NavbarProps) {
   const { items } = useCartStore();
   const totalItems = items.reduce((total, item) => total + item.quantity, 0);
 
@@ -28,7 +29,17 @@ export default function Navbar({ user }: NavbarProps) {
               {totalItems}
             </span>
           </Link>
-          
+
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="flex items-center text-slate-300 hover:text-white"
+            >
+              <Plus className="h-6 w-6" />
+              <span className="ml-2 text-sm font-medium">상품 만들기</span>
+            </Link>
+          )}
+
           {user && (
             <Link href="/orders" className="flex items-center text-slate-300 hover:text-white">
               <ListOrdered className="h-6 w-6" />

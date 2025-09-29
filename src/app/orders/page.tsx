@@ -1,7 +1,7 @@
 import { createServerClientAsync } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { updateOrderStatus } from "@/app/actions/order";
+import { updateOrderStatus, updateOrderStatusBatch } from "@/app/actions/order";
 import {
   ORDER_STATUS_OPTIONS,
   isOrderStatusValue,
@@ -25,6 +25,7 @@ type Order = {
   created_at: string;
   total_price: number;
   status: string;
+  admin_note: string | null;
   order_items: OrderItem[];
 };
 
@@ -41,10 +42,25 @@ type ProfileSummary = {
 export default async function OrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; sort?: string }>;
 }) {
   const params = await searchParams;
   const requestedStatus = params?.status;
+  const searchQuery = typeof params?.q === 'string' ? params.q.trim() : '';
+
+  type SortOption = 'recent' | 'oldest' | 'amount-desc' | 'amount-asc';
+
+  const sortOption: SortOption = (() => {
+    const value = (params?.sort ?? '').toString().toLowerCase();
+    switch (value) {
+      case 'oldest':
+      case 'amount-desc':
+      case 'amount-asc':
+        return value;
+      default:
+        return 'recent';
+    }
+  })();
   const supabase = await createServerClientAsync();
   
   // 1. 현재 로그인된 사용자 정보 가져오기
@@ -105,10 +121,11 @@ export default async function OrdersPage({
       };
 
   // 4. 주문 내역을 가져오기 (관리자는 전체, 일반 사용자는 자신의 주문만)
-  const baseQuery = supabase
+  let baseQuery = supabase
     .from('orders')
     .select(`
       id,
+      admin_note,
       user_id,
       created_at,
       total_price,
@@ -120,8 +137,23 @@ export default async function OrdersPage({
           name
         )
       )
-    `)
-    .order('created_at', { ascending: false });
+    `);
+
+  switch (sortOption) {
+    case 'oldest':
+      baseQuery = baseQuery.order('created_at', { ascending: true });
+      break;
+    case 'amount-desc':
+      baseQuery = baseQuery.order('total_price', { ascending: false });
+      break;
+    case 'amount-asc':
+      baseQuery = baseQuery.order('total_price', { ascending: true });
+      break;
+    case 'recent':
+    default:
+      baseQuery = baseQuery.order('created_at', { ascending: false });
+      break;
+  }
 
   const ordersQuery = isAdmin ? baseQuery : baseQuery.eq('user_id', user.id);
 
@@ -192,55 +224,157 @@ export default async function OrdersPage({
     }
   }
 
+  const normalizedSearch = searchQuery.toLowerCase();
+
+  const visibleOrders = orderList.filter((order) => {
+    if (!normalizedSearch) return true;
+    const profileInfo = profilesById[order.user_id];
+    return (
+      order.id.toLowerCase().includes(normalizedSearch) ||
+      (profileInfo?.email?.toLowerCase().includes(normalizedSearch) ?? false) ||
+      (profileInfo?.user_name?.toLowerCase().includes(normalizedSearch) ?? false)
+    );
+  });
+
+  const createStatusHref = (value: string) => {
+    const nextParams = new URLSearchParams();
+    if (value !== 'all') {
+      nextParams.set('status', value);
+    }
+    if (searchQuery) nextParams.set('q', searchQuery);
+    if (sortOption !== 'recent') nextParams.set('sort', sortOption);
+    const queryString = nextParams.toString();
+    return `/orders${queryString ? `?${queryString}` : ''}`;
+  };
+
+  const statusFilterLabel = statusFilter ?? 'all';
+
+  const currentParams = new URLSearchParams();
+  if (statusFilterLabel !== 'all') currentParams.set('status', statusFilterLabel);
+  if (searchQuery) currentParams.set('q', searchQuery);
+  if (sortOption !== 'recent') currentParams.set('sort', sortOption);
+  const currentPath = currentParams.toString()
+    ? `/orders?${currentParams.toString()}`
+    : '/orders';
+
   return (
     <main className="container mx-auto px-4 py-12 text-white">
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <h1 className="text-3xl font-bold">주문 내역</h1>
-        {isAdmin && (
-          <div className="flex flex-wrap gap-2">
-            {[
-              { value: 'all', label: '전체' },
-              { value: 'in-progress', label: '진행중' },
-              ...ORDER_STATUS_OPTIONS,
-            ].map((option) => {
-              const matchesFilter =
-                option.value === 'all'
-                  ? !statusFilter
-                  : option.value === 'in-progress'
-                    ? statusFilter === 'in-progress'
-                    : statusFilter === option.value;
-              const href =
-                option.value === 'all'
-                  ? '/orders'
-                  : `/orders?status=${encodeURIComponent(option.value)}`;
-              return (
-                <Link
-                  key={option.value}
-                  href={href}
-                  className={`rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
-                    matchesFilter
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-slate-600 text-slate-200 hover:border-primary hover:text-primary'
-                  }`}
-                >
-                  {option.label}
-                </Link>
-              );
-            })}
-          </div>
-        )}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
+          {isAdmin && (
+            <div className="flex flex-wrap gap-2">
+              {[
+                { value: 'all', label: '전체' },
+                { value: 'in-progress', label: '진행중' },
+                ...ORDER_STATUS_OPTIONS,
+              ].map((option) => {
+                const matchesFilter =
+                  option.value === 'all'
+                    ? !statusFilter
+                    : option.value === 'in-progress'
+                      ? statusFilter === 'in-progress'
+                      : statusFilter === option.value;
+                return (
+                  <Link
+                    key={option.value}
+                    href={createStatusHref(option.value)}
+                    className={`rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
+                      matchesFilter
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-slate-600 text-slate-200 hover:border-primary hover:text-primary'
+                    }`}
+                  >
+                    {option.label}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+          <form className="flex flex-wrap items-center gap-2" action="/orders" method="get">
+            {statusFilterLabel !== 'all' && (
+              <input type="hidden" name="status" value={statusFilterLabel} />
+            )}
+            <input
+              type="text"
+              name="q"
+              defaultValue={searchQuery}
+              placeholder="주문번호, 이메일, 이름 검색"
+              className="w-48 rounded-md border border-slate-600 bg-slate-900/80 px-3 py-2 text-sm text-slate-200 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+            />
+            <select
+              name="sort"
+              defaultValue={sortOption}
+              className="rounded-md border border-slate-600 bg-slate-900/80 px-3 py-2 text-sm text-slate-200 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+            >
+              <option value="recent">최신순</option>
+              <option value="oldest">오래된 순</option>
+              <option value="amount-desc">금액 높은 순</option>
+              <option value="amount-asc">금액 낮은 순</option>
+            </select>
+            <button
+              type="submit"
+              className="rounded-md border border-primary px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/10"
+            >
+              검색
+            </button>
+          </form>
+        </div>
       </div>
-      
-      {orderList.length === 0 ? (
+
+      {isAdmin && (
+        <form
+          id="batch-update-form"
+          action={updateOrderStatusBatch}
+          className="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-slate-700 bg-slate-900/80 p-4 text-sm"
+        >
+          <input type="hidden" name="redirectTo" value={currentPath} />
+          <label htmlFor="batch-status" className="font-semibold text-slate-200">
+            선택한 주문 상태
+          </label>
+          <select
+            id="batch-status"
+            name="status"
+            className="rounded-md border border-slate-600 bg-slate-900/80 px-3 py-2 text-slate-200 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+            defaultValue={statusFilterLabel !== 'all' && statusFilterLabel !== 'in-progress' ? statusFilterLabel : 'paid'}
+          >
+            {ORDER_STATUS_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <button
+            type="submit"
+            className="rounded-md border border-primary px-4 py-2 font-semibold text-primary transition-colors hover:bg-primary/10"
+          >
+            선택 상태 변경
+          </button>
+          <p className="text-xs text-slate-400">
+            체크박스로 주문을 선택한 뒤 상태를 일괄 변경하세요.
+          </p>
+        </form>
+      )}
+
+      {visibleOrders.length === 0 ? (
         <div className="text-center py-16 bg-slate-800 rounded-lg">
-          <p className="text-slate-400">아직 주문 내역이 없습니다.</p>
-          <Link href="/" className="mt-4 inline-block bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-2 px-4 rounded">
-            쇼핑 계속하기
-          </Link>
+          <p className="text-slate-400">
+            {searchQuery
+              ? `"${searchQuery}"에 대한 주문을 찾을 수 없습니다.`
+              : '아직 주문 내역이 없습니다.'}
+          </p>
+          {!isAdmin && (
+            <Link
+              href="/"
+              className="mt-4 inline-block bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-2 px-4 rounded"
+            >
+              쇼핑 계속하기
+            </Link>
+          )}
         </div>
       ) : (
         <div className="space-y-6">
-          {orderList.map(order => {
+          {visibleOrders.map(order => {
             const profileInfo = profilesById[order.user_id];
             const orderItems = Array.isArray(order.order_items)
               ? order.order_items
@@ -272,10 +406,22 @@ export default async function OrdersPage({
 
             return (
             <div key={order.id} className="bg-slate-800 border border-slate-700 rounded-lg shadow-lg p-6">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
-                <div className="mb-2 sm:mb-0">
-                  <span className="text-sm text-slate-400">주문번호</span>
-                  <p className="font-mono text-lg">{order.id}</p>
+              <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex items-center gap-3">
+                  {isAdmin && (
+                    <input
+                      type="checkbox"
+                      form="batch-update-form"
+                      name="orderIds"
+                      value={order.id}
+                      className="h-4 w-4 rounded border-slate-600 bg-slate-900 text-primary focus:ring-primary/50"
+                      aria-label={`${order.id} 선택`}
+                    />
+                  )}
+                  <div>
+                    <span className="text-sm text-slate-400">주문번호</span>
+                    <p className="font-mono text-lg text-slate-100">{order.id}</p>
+                  </div>
                 </div>
                 <div className="text-sm text-slate-400">
                   {new Date(order.created_at).toLocaleString('ko-KR')}
@@ -300,6 +446,9 @@ export default async function OrdersPage({
                     <p className="mt-1 text-slate-500">등록된 배송 주소가 없습니다.</p>
                   )}
                   {shippingPhone && <p className="mt-1">연락처: {shippingPhone}</p>}
+                  {isAdmin && order.admin_note && (
+                    <p className="mt-2 text-xs text-primary/80">메모: {order.admin_note}</p>
+                  )}
                 </div>
               </div>
               
@@ -323,13 +472,14 @@ export default async function OrdersPage({
                 {isAdmin ? (
                   <form action={updateOrderStatus} className="flex flex-col gap-2 sm:flex-row sm:items-center">
                     <input type="hidden" name="orderId" value={order.id} />
+                    <input type="hidden" name="redirectTo" value={currentPath} />
                     <label
                       htmlFor={`status-${order.id}`}
                       className="text-xs font-semibold uppercase tracking-wide text-slate-400"
                     >
                       주문 상태
                     </label>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <select
                         id={`status-${order.id}`}
                         name="status"
@@ -348,6 +498,12 @@ export default async function OrdersPage({
                       >
                         업데이트
                       </button>
+                      <Link
+                        href={`/orders/${order.id}`}
+                        className="rounded-md border border-slate-600 px-3 py-2 text-sm text-slate-200 transition-colors hover:border-primary hover:text-primary"
+                      >
+                        상세 보기
+                      </Link>
                     </div>
                   </form>
                 ) : (
@@ -370,6 +526,12 @@ export default async function OrdersPage({
                   <p className="text-xl font-bold text-slate-100">
                     총 결제 금액: {order.total_price.toLocaleString()}원
                   </p>
+                  <Link
+                    href={`/orders/${order.id}`}
+                    className="mt-2 inline-block text-sm text-primary hover:underline"
+                  >
+                    상세 페이지로 이동
+                  </Link>
                 </div>
               </div>
             </div>

@@ -79,6 +79,7 @@ export async function createOrder(items: CartItem[]) {
 export async function updateOrderStatus(formData: FormData) {
   const orderId = formData.get('orderId');
   const status = formData.get('status');
+  const redirectTo = formData.get('redirectTo');
 
   if (typeof orderId !== 'string' || orderId.length === 0) {
     return { error: '주문 ID가 올바르지 않습니다.' } as const;
@@ -141,5 +142,168 @@ export async function updateOrderStatus(formData: FormData) {
   }
 
   revalidatePath('/orders');
+  revalidatePath(`/orders/${orderId}`);
+
+  if (typeof redirectTo === 'string' && redirectTo.startsWith('/')) {
+    redirect(redirectTo);
+  }
+
   redirect('/orders');
+}
+
+export async function updateOrderStatusBatch(formData: FormData) {
+  const orderIdsRaw = formData.getAll('orderIds');
+  const status = formData.get('status');
+  const redirectTo = formData.get('redirectTo');
+
+  const orderIds = orderIdsRaw
+    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
+
+  if (orderIds.length === 0) {
+    return { error: '선택한 주문이 없습니다.' } as const;
+  }
+
+  if (typeof status !== 'string' || !isOrderStatusValue(status)) {
+    return { error: '선택한 주문 상태가 올바르지 않습니다.' } as const;
+  }
+
+  const cookieStore = await cookies();
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value ?? null;
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          try {
+            cookieStore.set({ name, value, ...options });
+          } catch {}
+        },
+        remove(name: string, options: CookieOptions) {
+          try {
+            cookieStore.set({ name, value: '', ...options, maxAge: 0 });
+          } catch {}
+        },
+      },
+    }
+  );
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: '로그인이 필요합니다.' } as const;
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (profile?.role !== 'admin') {
+    return { error: '관리자만 주문 상태를 변경할 수 있습니다.' } as const;
+  }
+
+  const { error } = await supabase
+    .from('orders')
+    .update({ status })
+    .in('id', orderIds);
+
+  if (error) {
+    console.error('주문 상태 일괄 업데이트 오류:', error);
+    return { error: '주문 상태를 일괄 변경하는 데 실패했습니다.' } as const;
+  }
+
+  revalidatePath('/orders');
+  for (const id of orderIds) {
+    revalidatePath(`/orders/${id}`);
+  }
+
+  if (typeof redirectTo === 'string' && redirectTo.startsWith('/')) {
+    redirect(redirectTo);
+  }
+
+  redirect('/orders');
+}
+
+export async function updateOrderMemo(formData: FormData) {
+  const orderId = formData.get('orderId');
+  const memo = formData.get('adminNote');
+  const redirectTo = formData.get('redirectTo');
+
+  if (typeof orderId !== 'string' || orderId.length === 0) {
+    return { error: '주문 ID가 올바르지 않습니다.' } as const;
+  }
+
+  if (typeof memo !== 'string') {
+    return { error: '메모 값이 올바르지 않습니다.' } as const;
+  }
+
+  const adminNote = memo.trim() === '' ? null : memo.trim();
+
+  const cookieStore = await cookies();
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value ?? null;
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          try {
+            cookieStore.set({ name, value, ...options });
+          } catch {}
+        },
+        remove(name: string, options: CookieOptions) {
+          try {
+            cookieStore.set({ name, value: '', ...options, maxAge: 0 });
+          } catch {}
+        },
+      },
+    }
+  );
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: '로그인이 필요합니다.' } as const;
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (profile?.role !== 'admin') {
+    return { error: '관리자만 메모를 작성할 수 있습니다.' } as const;
+  }
+
+  const { error } = await supabase
+    .from('orders')
+    .update({ admin_note: adminNote })
+    .eq('id', orderId);
+
+  if (error) {
+    console.error('주문 메모 업데이트 오류:', error);
+    return { error: '주문 메모를 저장하는 데 실패했습니다.' } as const;
+  }
+
+  revalidatePath('/orders');
+  revalidatePath(`/orders/${orderId}`);
+
+  if (typeof redirectTo === 'string' && redirectTo.startsWith('/')) {
+    redirect(redirectTo);
+  }
+
+  redirect(`/orders/${orderId}`);
 }

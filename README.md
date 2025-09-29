@@ -31,7 +31,7 @@ NEXT_PUBLIC_TEST_MODE=false
 Additional services (PortOne, Toss test mode, etc.) should be added here as needed.
 
 ## Supabase Configuration
-1. **Schema**: ensure `profiles` includes `user_name`, `phone_number`, `postcode`, `address`, `detail_address`. Regenerate `src/types/supabase.ts` after altering columns.
+1. **Schema**: ensure `profiles` includes `user_name`, `phone_number`, `postcode`, `address`, `detail_address`. Add an `admin_note text` column to `orders` for 관리자 메모. Regenerate `src/types/supabase.ts` after altering columns.
 2. **Policies**: create helper function and policies that allow admins to read/update all orders and profiles:
    ```sql
    create or replace function public.is_admin()
@@ -50,7 +50,8 @@ Additional services (PortOne, Toss test mode, etc.) should be added here as need
    Apply policies such as `orders_select_self_or_admin`, `orders_update_self_or_admin`, and `profiles_select_self_or_admin` using `public.is_admin()`.
 
 ## Admin Workflow
-- `/orders` shows all orders when the viewer is an admin. Use the filter buttons on the top right to drill down by status. Submitting the status form calls `updateOrderStatus`, which revalidates and redirects back to `/orders`.
+- `/orders` shows all orders when the viewer is an admin. 상태 필터 버튼, 검색(`q`), 정렬(`sort`)을 조합해 목록을 탐색할 수 있고, 체크박스로 선택한 주문은 일괄 상태 변경 폼으로 처리합니다.
+- 카드의 “상세 보기”와 `/orders/[id]` 페이지에서 관리자 메모(`admin_note`)를 작성·수정할 수 있습니다. 제출 후 `/orders`와 상세 페이지가 즉시 갱신됩니다.
 - `/admin` exposes product add/edit/delete forms. Image uploads use the `product-images` Supabase Storage bucket.
 
 ## Styling Notes
